@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import requests
 from discord import Embed, Colour
 from discord.ui import View, Button
-from server import keep_alive()
+from server import keep_alive
 # =========================
 # Setup & configuration
 # =========================
