@@ -1,7 +1,6 @@
 py-cord
 python-dotenv
 requests
-aiohttp
 typing-extensions
 flask
 gunicorn
