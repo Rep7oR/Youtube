@@ -1,7 +1,7 @@
-py-cord
+discord.py
 python-dotenv
-requests
-typing-extensions
 flask
+requests
 gunicorn
+typing-extensions
 
