@@ -817,3 +817,47 @@ if __name__ == "__main__":
     if missing:
         raise SystemExit(f"Missing env vars: {', '.join(missing)}")
     bot.run(DISCORD_TOKEN)
+
+# ==========================
+# KEEP-ALIVE WEB SERVICE
+# ==========================
+import threading
+from flask import Flask
+import os
+import requests
+
+app = Flask(__name__)
+
+def start_bot():
+    bot.run(DISCORD_TOKEN)
+
+def keep_alive(url):
+    def ping():
+        while True:
+            try:
+                print("Pinging Render to stay awake...")
+                requests.get(url)
+            except Exception as e:
+                print("Ping error:", e)
+            time.sleep(240)   # every 4 min
+    t = threading.Thread(target=ping, daemon=True)
+    t.start()
+
+@app.route("/")
+def home():
+    return "Bot is alive!", 200
+
+
+if __name__ == "__main__":
+    public_url = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:5000")
+
+    # keep-alive self-ping
+    keep_alive(public_url)
+
+    # start discord bot
+    t = threading.Thread(target=start_bot, daemon=True)
+    t.start()
+
+    # start flask website
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
