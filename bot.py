@@ -13,10 +13,11 @@ from dotenv import load_dotenv
 import requests
 from discord import Embed, Colour
 from discord.ui import View, Button
-
+from server import keep_alive()
 # =========================
 # Setup & configuration
 # =========================
+keep_alive()
 load_dotenv()
 log = logging.getLogger("yt-discord-bot")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
