@@ -17,7 +17,6 @@ from server import keep_alive
 # =========================
 # Setup & configuration
 # =========================
-keep_alive()
 load_dotenv()
 log = logging.getLogger("yt-discord-bot")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -759,13 +758,12 @@ async def live_status_loop_noapi():
 # =========================
 @bot.event
 async def on_ready():
-    global _ready_once
+    global _ready_once, reminder_queue
     if _ready_once:
-        log.info("on_ready called again; skipping one-time setup.")
-        return  # prevent duplicate setup on reconnects
+        return
     _ready_once = True
 
-    log.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
@@ -774,48 +772,25 @@ async def on_ready():
         status=discord.Status.online
     )
 
-    guild = bot.get_guild(GUILD_ID)
-    if guild:
-        await ensure_stats_voice_channels(guild)
-        await refresh_members_channel(guild)
-
-    # Initial RSS load
-    try:
-        if YOUTUBE_CHANNEL_ID:
-            url = channel_rss_url(YOUTUBE_CHANNEL_ID)
+    # Example: Load RSS feed initially
+    if YOUTUBE_CHANNEL_ID:
+        try:
+            url = f"https://www.youtube.com/feeds/videos.xml?channel_id={YOUTUBE_CHANNEL_ID}"
             r = requests.get(url, timeout=15)
             r.raise_for_status()
-            entries = parse_rss_entries(r.text)
-            cache = load_rss_cache(RSS_CACHE_PATH)
-            added = accumulate_from_rss(cache, entries)
-            if added:
-                save_rss_cache(RSS_CACHE_PATH, cache)
-            global reminder_queue
-            reminder_queue = list(cache.values())
+            # For simplicity, just save titles to queue
+            entries = [entry["title"] for entry in r.json().get("items", [])]
+            reminder_queue = list(entries)
             random.shuffle(reminder_queue)
-            log.info("Initial RSS load: %d items in queue", len(reminder_queue))
-    except Exception as e:
-        log.exception("Initial RSS load failed: %s", e)
+            print(f"Initial RSS load: {len(reminder_queue)} items")
+        except Exception as e:
+            print("RSS load failed:", e)
 
-    # Start loops (idempotent)
-    if not stats_loop.is_running():
-        stats_loop.start()
-    if not rss_refresh_loop.is_running():
-        rss_refresh_loop.start()
-    if not reminder_loop.is_running():
-        reminder_loop.start()
-    if not live_status_loop_noapi.is_running():
-        live_status_loop_noapi.start()
+# Start Flask keep-alive server
+keep_alive()
 
 if __name__ == "__main__":
-    required = [
-        ("DISCORD_TOKEN", DISCORD_TOKEN),
-        ("GUILD_ID", GUILD_ID),
-        ("YOUTUBE_API_KEY", YOUTUBE_API_KEY),
-        ("YOUTUBE_CHANNEL_ID", YOUTUBE_CHANNEL_ID),
-    ]
-    missing = [k for k, v in required if not v or (k == "GUILD_ID" and int(v) == 0)]
-    if missing:
-        raise SystemExit(f"Missing env vars: {', '.join(missing)}")
+    if not DISCORD_TOKEN or not GUILD_ID:
+        raise SystemExit("Missing DISCORD_TOKEN or GUILD_ID")
     bot.run(DISCORD_TOKEN)
 
