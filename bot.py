@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import requests
 from discord import Embed, Colour
 from discord.ui import View, Button
-
+from server import keep_alive
 # =========================
 # Setup & configuration
 # =========================
@@ -807,6 +807,7 @@ async def on_ready():
         live_status_loop_noapi.start()
 
 if __name__ == "__main__":
+    keep_alive()
     required = [
         ("DISCORD_TOKEN", DISCORD_TOKEN),
         ("GUILD_ID", GUILD_ID),
